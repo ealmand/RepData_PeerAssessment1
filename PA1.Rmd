@@ -1,0 +1,68 @@
+---
+title: 'Reproducible Research: Peer Assessment 1'
+output:
+  html_document:
+    keep_md: yes
+  pdf_document: default
+---
+
+## Data
+
+The variables included in this dataset are:
+
+    steps: Number of steps taking in a 5-minute interval (missing values are coded as NA)
+
+    date: The date on which the measurement was taken in YYYY-MM-DD format
+
+    interval: Identifier for the 5-minute interval in which measurement was taken
+
+The dataset is stored in a comma-separated-value (CSV) file and there are a total of 17,568 observations in this dataset.
+
+## Loading and preprocessing the data
+
+The data for this assignment can be downloaded from the course web site:
+
+    Dataset: Activity monitoring data [52K] - can be accessed from 
+    https://github.com/ealmand/RepData_PeerAssessment1/blob/master/activity.zip
+
+The following R script will load the data for processing.
+   
+```{r, echo=TRUE}
+## set working directory
+setwd("~/Data Science/Assignments/RepData_PA1")
+
+## creating a data directory
+if (!file.exists("data")) {
+        dir.create("data")
+}
+
+## download a file and place in "data" directory
+if (!file.exists("data")) {
+        fileUrl <- "https://github.com/ealmand/RepData_PeerAssessment1/blob/master/activity.zip"
+        zipfile="data/activity.zip"
+        download.file(fileUrl, destfile=zipfile)
+        unzip(zipfile, exdir="data")
+}
+
+## read data
+data <- read.csv("./data/activity.csv")
+```
+    
+    
+
+## What is mean total number of steps taken per day?
+
+
+
+## What is the average daily activity pattern?
+
+
+
+## Imputing missing values
+
+
+
+## Are there differences in activity patterns between weekdays and weekends?
+
+
+
