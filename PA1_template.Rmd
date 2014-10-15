@@ -1,25 +1,196 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
+title: 'Reproducible Research: Peer Assessment 1'
+output:
   html_document:
-    keep_md: true
+    keep_md: yes
+  pdf_document: default
 ---
 
+## Data
 
-## Loading and preprocessing the data
+The variables included in this dataset are:
 
+    steps: Number of steps taking in a 5-minute interval (missing values are coded as NA)
 
+    date: The date on which the measurement was taken in YYYY-MM-DD format
+
+    interval: Identifier for the 5-minute interval in which measurement was taken
+
+The dataset is stored in a comma-separated-value (CSV) file and there are a total of 17,568 observations in this dataset.
+
+### Required libraries
+
+- library(lattice)
+- library(plyr)
+- library(data.table)
+
+### Loading and preprocessing the data
+
+The data for this assignment can be downloaded from the following site:
+
+    Dataset: Activity monitoring data [52K] - can be accessed from 
+    https://github.com/ealmand/RepData_PeerAssessment1/blob/master/activity.zip
+
+The following R script will load the data for processing.
+   
+```{r, echo=TRUE}
+## set working directory
+setwd("~/Data Science/Assignments/RepData_PA1")
+
+## creating a data directory
+if (!file.exists("data")) {
+        dir.create("data")
+}
+
+## download a file and place in "data" directory
+if (!file.exists("data")) {
+        fileUrl <- "https://github.com/ealmand/RepData_PeerAssessment1/blob/master/activity.zip"
+        zipfile="data/activity.zip"
+        download.file(fileUrl, destfile=zipfile)
+        unzip(zipfile, exdir="data")
+}
+
+## read data
+data <- read.csv("./data/activity.csv")
+```
+
+Explore the data
+
+```{r}
+## take a look at some of the data
+head(data)
+
+## identify the dimension of the dataset
+dim(data)
+```
+
+Transform the column classes for date and interval and remove NA values
+
+```{r}
+## transform date column values to date class
+data$date <- as.Date(data$date, format="%Y-%m-%d")
+
+## transform interval column values to numeric class
+data$interval <- as.numeric(data$interval)
+
+noNA <- data[!is.na(data$steps),]
+```
 
 ## What is mean total number of steps taken per day?
 
+### Make a histogram of the total number of steps taken each day
 
+```{r}
+## plot histogram
+TotStepsDay <- sapply(split(data$steps, data$date), sum, na.rm=TRUE)
+hist(TotStepsDay, main = 'total steps per day', xlab='steps')
+```
+
+### Calculate and report the mean and median total number of steps taken per day
+
+```{r}
+## install library
+library(plyr)
+total <- ddply(noNA, ~date, summarise, sum=sum(steps))
+
+## calcluate mean and median steps per day
+totmean <- mean(total$sum)
+totmedian <- median(total$sum)
+```
+
+The mean of number of steps is **`r totmean`** and median is **`r totmedian`**.
 
 ## What is the average daily activity pattern?
 
+### Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
 
+```{r}
+meansteps <- ddply(noNA ,~interval, summarise, mean=mean(steps))
+plot(meansteps$interval, meansteps$mean, ylab = "average steps", xlab = "Interval", type = "l")
+```
+
+### Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+
+```{r}
+max <- max(meansteps$mean)
+maxint <- meansteps[meansteps$mean == max, 1]
+```
+
+The maximum interval is **`r maxint`**.
 
 ## Imputing missing values
 
+### Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
 
+```{r}
+totNA <- sum(is.na(data))
+sum(is.na(data$steps))
+```
+
+The number of NA's in the entire data set is equal to the number of NA's in the steps column; therefore, no other columns in the dataset had NA's.
+
+The total number of missing values in the dataset is **`r totNA`**.
+
+### Devise a strategy for filling in all of the missing values in the dataset.
+
+1. Create a new dataset
+2. Replace NA value with the mean number of steps available in **'meansteps'**
+
+### Create a new dataset that is equal to the original dataset but with the missing data filled in.
+
+```{r}
+## install library
+(library(data.table))
+
+## create new data set
+newdata <- data.table(data)
+
+## replace NA values in the new data set
+meansteps[,1] <- as.numeric(as.character(meansteps[,1]))
+meansteps <- data.table(meansteps)
+(newdata[is.na(steps), steps := round(meansteps[meansteps$interval==steps,meansteps$mean])])
+```
+
+### Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. 
+
+```{r}
+## using the new data set with the NAs replaced by mean values calculate the total per day
+totday <- aggregate(newdata$steps ~ newdata$date, newdata, FUN=sum)
+
+## plot histogram
+hist(totday[,2],xlab="Number of Steps",ylab="Frequency of Daily Total",main="Total Daily Steps\n(NA values imputed)")
+
+## Calculate new mean and new median values
+newmean <- mean(totday[,2])
+newmedian <- median(totday[,2])
+```
+
+The mean of number of steps from the new dataset is **`r newmean`** and median is **`r newmedian`**.
+
+### Do these values differ from the estimates from the first part of the assignment? 
+
+```{r}
+diffmean <-  totmean - newmean
+diffmedian <- totmedian - newmedian
+```
+
+The difference in values of mean and median are **`r diffmean`** and **`r diffmedian`**, respectively.
+
+### What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+The impact of imputing missing data depends on the data, the methodology, and the ability for others to reproduce the research for the purpose of evaluating the methods by which the research was conducted. The reason for this course subject is to ensure that the research is reproducible should another method be evaluated in comparison to this.
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+1.  Create a new factor variable in the dataset with two levels - "weekday" and "weekend" indicating whether a given date is a weekday or weekend day.
+
+2.  Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis).
+
+```{r}
+library(lattice)
+weekdays <- weekdays(as.Date(noNA$date))
+wkday <- transform(noNA, day=weekdays)
+wkday$wk <- ifelse(wkday$day %in% c("Saturday", "Sunday"),"weekend", "weekday")
+meanweek <- ddply(wkday, .(interval, wk), summarise, steps=mean(steps))
+xyplot(steps ~ interval | wk, data = meanweek, layout = c(1, 2), xlab = "5-minute interval", ylab = "average number of steps taken", type="l")
+```
